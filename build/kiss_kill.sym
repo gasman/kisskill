@@ -142,7 +142,7 @@ load_screen_block EQU 08BE2H
 loading_stripes	EQU 0810DH
 logo		EQU 09003H
 logoframe_lp	EQU 08EF9H
-mask		EQU 0E600H
+mask		EQU 0E700H
 mask_clear_lp	EQU 0CDB0H
 mask_col_lp	EQU 0CDF0H
 mask_rect	EQU 0CDDFH
@@ -166,7 +166,7 @@ nxt32		EQU 0D048H
 oblit		EQU 08318H
 oblit_src	EQU 0831AH
 osc_bar_ctr	EQU 08192H
-osc_data	EQU 0E939H
+osc_data	EQU 0EA39H
 osc_fade	EQU 082BEH
 osc_fade_lp	EQU 082C1H
 osc_frame	EQU 08192H
@@ -204,16 +204,16 @@ p_count_beats	EQU 0CD66H
 paintleaprow	EQU 0C1EAH
 pal_offset	EQU 0CE69H
 pal_offset_lp	EQU 0CE70H
-palette1	EQU 0E100H
-palette2	EQU 0E200H
-palette3	EQU 0E300H
-palette4	EQU 0E400H
-palette5	EQU 0E500H
+palette1	EQU 0E200H
+palette2	EQU 0E300H
+palette3	EQU 0E400H
+palette4	EQU 0E500H
+palette5	EQU 0E600H
 palette_sel	EQU 0CE7DH
 palette_seq	EQU 0D070H
 palette_seq_pos	EQU 0CDFDH
 plasma		EQU 0CE2DH
-plasma_col_data	EQU 0E920H
+plasma_col_data	EQU 0EA20H
 plasma_col_lp	EQU 0CE5BH
 plasma_draw_row_lp EQU 0CE85H
 plasma_dx0	EQU 0CE30H
@@ -221,7 +221,7 @@ plasma_dx1	EQU 0CE38H
 plasma_dy0	EQU 0CE4EH
 plasma_dy1	EQU 0CE56H
 plasma_init	EQU 0C000H
-plasma_row_data	EQU 0E900H
+plasma_row_data	EQU 0EA00H
 plasma_row_lp	EQU 0CE3DH
 plasma_run	EQU 0C01EH
 plasma_update	EQU 0CE0DH
@@ -231,7 +231,7 @@ plasma_y0	EQU 0CE4BH
 plasma_y1	EQU 0CE51H
 poster_scr	EQU 0C000H
 prenoiselp	EQU 08FBDH
-preserveme	EQU 0E938H
+preserveme	EQU 0EA38H
 putlogo_lp	EQU 08EB3H
 qs2_lp1		EQU 08A05H
 qs2_lp2		EQU 08A32H
@@ -286,7 +286,7 @@ saysattr	EQU 08F69H
 saysseqpos	EQU 08F07H
 sector_number	EQU 08E2AH
 set_stripe_pattern EQU 0810DH
-sine		EQU 0E000H
+sine		EQU 0E100H
 skips		EQU 0DD00H
 sky_img		EQU 0D500H
 sky_nocopy_1	EQU 0D46CH
@@ -299,7 +299,7 @@ sky_render	EQU 0D322H
 sky_scr_lp	EQU 0D32DH
 sky_show	EQU 0D454H
 sky_show_lp	EQU 0D460H
-sky_wkspc	EQU 0DD00H
+sky_wkspc	EQU 0DE00H
 spback		EQU 089D9H
 spiral_start	EQU 0F000H
 spl_8_lines	EQU 088D9H

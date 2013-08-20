@@ -156,7 +156,7 @@ task :target => 'roto_sine.asm', :dependencies => 'scripts/roto_sine.rb' do
 end
 
 task :target => 'skips.asm', :dependencies => ['scripts/skips.rb', 'scripts/perspective.rb'] do
-	`ruby scripts/skips.rb > build/skips.asm`
+	`ruby -Iscripts scripts/skips.rb > build/skips.asm`
 end
 
 task :target => 'sky.bin', :dependencies => ['images/sky.im8', 'scripts/skyconv.py'] do
