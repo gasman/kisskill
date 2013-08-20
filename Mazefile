@@ -1,0 +1,221 @@
+task :target => 'default', :dependencies => ['boot.szx', 'kiss_kill.hdf'] do
+	# Fuse doesn't reliably open two files specified on the command line together.
+	# As a workaround, we'll start Fuse in the background, wait one second,
+	# and then open the HDF file on the same instance. Eww.
+	job1 = fork do
+		exec "/Applications/Fuse.app/Contents/MacOS/Fuse boot.szx"
+	end
+	Process.detach(job1)
+
+	sleep(1)
+	run_command "open build/kiss_kill.hdf"
+end
+
+
+### STAGE 1: convert video / audio clips (not included in source package) ###
+# 
+# task :target => 'stage1' do
+# 	system "mkdir -p build/screens"
+# 	system "bin/vid2scr clips/jules-vsplit-adjusted.avi build/screens/jules-vsplit --mono --dither=2"
+# 
+# 	system "bin/vid2scr clips/a01.avi build/screens/a01 --brightlevel=0.3"
+# 	system "bin/vid2scr clips/a02.avi build/screens/a02 --brightlevel=0.25"
+# 	system "bin/vid2scr clips/a03.avi build/screens/a03 --brightlevel=0.15 --contrast=7"
+# 	system "bin/vid2scr clips/a04.avi build/screens/a04 --brightlevel=2 --contrast=3"
+# 	system "bin/vid2scr clips/a05.avi build/screens/a05 --brightlevel=0.14 --contrast=5"
+# 	system "bin/vid2scr clips/a06.avi build/screens/a06 --brightlevel=0.2 --contrast=7"
+# 	system "bin/vid2scr clips/a07.avi build/screens/a07 --brightlevel=0.2 --contrast=10"
+# 	system "bin/vid2scr clips/a08.avi build/screens/a08 --brightlevel=0.2"
+# 	system "bin/vid2scr clips/a09.avi build/screens/a09 --brightlevel=0.1 --contrast=6"
+# 	system "bin/vid2scr clips/a10.avi build/screens/a10 --brightlevel=0.6 --contrast=10"
+# 
+# 	system "bin/vid2scr clips/b01.avi build/screens/b01 --brightlevel=0.24 --contrast=11"
+# 	system "bin/vid2scr clips/b02.avi build/screens/b02 --brightlevel=0.4 --contrast=10"
+# 	system "bin/vid2scr clips/b03.avi build/screens/b03 --brightlevel=3"
+# 	system "bin/vid2scr clips/07-elise-overhead-pan-2.avi build/screens/b04 --brightlevel=0.9 --contrast=7"
+# 	system "bin/vid2scr clips/b05.avi build/screens/b05 --brightlevel=0.2"
+# 	system "bin/vid2scr clips/b06.avi build/screens/b06 --brightlevel=0.4 --contrast=6"
+# 	system "bin/vid2scr clips/b07.avi build/screens/b07 --brightlevel=0.2"
+# 	system "bin/vid2scr clips/b08.avi build/screens/b08 --brightlevel=0.06 --contrast=6.5"
+# 	system "bin/vid2scr clips/b09.avi build/screens/b09 --brightlevel=0.1 --contrast=15"
+# 	system "bin/vid2scr clips/b10.avi build/screens/b10 --brightlevel=0.28 --contrast=7.5"
+# 	system "bin/vid2scr clips/b11.avi build/screens/b11 --brightlevel=0.25 --frames=52"
+# 
+# 	system "bin/vid2scr clips/c01.avi build/screens/c01 --brightlevel=0.2 --contrast=7"
+# 	system "bin/vid2scr clips/c02.avi build/screens/c02 --brightlevel=0.1 --contrast=6"
+# 	system "bin/vid2scr clips/c03.avi build/screens/c03 --brightlevel=0.9 --contrast=8"
+# 	system "bin/vid2scr clips/c04.avi build/screens/c04 --brightlevel=0.05 --contrast=12"
+# 	system "bin/vid2scr clips/c05.avi build/screens/c05 --brightlevel=0.25 --contrast=8"
+# 	system "bin/vid2scr clips/c06.avi build/screens/c06 --brightlevel=0.25 --contrast=4"
+# 	system "bin/vid2scr clips/c07.avi build/screens/c07"
+# 	system "bin/vid2scr clips/c08.avi build/screens/c08 --brightlevel=0.25 --contrast=8"
+# 	system "bin/vid2scr clips/c09.avi build/screens/c09 --brightlevel=0.2"
+# 	system "bin/vid2scr clips/c10.avi build/screens/c10 --brightlevel=0.33 --contrast=12"
+# 	system "bin/vid2scr clips/c11.avi build/screens/c11 --brightlevel=0.1 --contrast=6"
+# 	system "bin/vid2scr clips/c12.avi build/screens/c12 --brightlevel=0.2 --contrast=6.8"
+# 	system "bin/vid2scr clips/c13.avi build/screens/c13 --brightlevel=0.7 --contrast=7"
+# 	system "bin/vid2scr clips/c14.avi build/screens/c14 --brightlevel=0.3 --contrast=15"
+# end
+# 
+# task :target => 'oscilloscope_data.asm', :dependencies => ['scripts/oscilloscope.py', 'clips/kisskill_wipmix2_leadin.wav'] do
+# 	run_command "python scripts/oscilloscope.py > build/oscilloscope_data.asm"
+# end
+# 
+# task :target => 'poster.scr', :dependencies => ['scripts/poster2scr.py', 'clips/kissing-heads.jpg'] do
+# 	run_command "python scripts/poster2scr.py"
+# end
+# 
+# task :target => 'ontheradio_sprites.bin', :dependencies => ['clips/matt-ontheradio-centre.m4v', 'scripts/matt_ontheradio_convert.py'] do
+# 	run_command "python scripts/matt_ontheradio_convert.py"
+# end
+# 
+# task :target => 'clap_sprites.bin', :dependencies => ['clips/matt-clap.m4v', 'scripts/matt_clap_convert.py'] do
+# 	run_command "python scripts/matt_clap_convert.py"
+# end
+# 
+# task :target => 'quarterscreen_sprites.bin', :dependencies => ['clips/jules-quarterscreen-2.m4v', 'scripts/jules_quarterscreen_2_convert.py'] do
+# 	run_command "python scripts/jules_quarterscreen_2_convert.py"
+# end
+# 
+# task :target => 'runner_sprites.bin', :dependencies => ['clips/runner.gif', 'scripts/running_convert.py'] do
+# 	run_command "python scripts/running_convert.py"
+# end
+# task :target => 'runner_up_sprites.bin', :dependencies => ['clips/runner.gif', 'scripts/running_convert.py'] do
+# 	run_command "python scripts/running_convert.py"
+# end
+# task :target => 'runner_left_sprites.bin', :dependencies => ['clips/runner.gif', 'scripts/running_convert.py'] do
+# 	run_command "python scripts/running_convert.py"
+# end
+# task :target => 'runner_down_sprites.bin', :dependencies => ['clips/runner.gif', 'scripts/running_convert.py'] do
+# 	run_command "python scripts/running_convert.py"
+# end
+
+
+### STAGE 2: compile kisskill.dat from the converted data ###
+
+task :target => 'kisskill.dat', :dependencies => ['assets/ontheradio_sprites.bin', 'assets/clap_sprites.bin', 'assets/quarterscreen_sprites.bin'] do
+	run_command "cp assets/ontheradio_sprites.bin build/kisskill.dat"
+	run_command "cat assets/clap_sprites.bin >> build/kisskill.dat"
+	run_command "cat assets/quarterscreen_sprites.bin >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a01/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a02/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a03/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a04/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a05/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a06/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a07/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a08/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a09/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/a10/ >> build/kisskill.dat"
+
+	run_command "python scripts/scrcat.py assets/screens/b01/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b02/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b03/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b04/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b05/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b06/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b07/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b08/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b09/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b10/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/b11/ >> build/kisskill.dat"
+
+	run_command "python scripts/scrcat.py assets/screens/c01/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c02/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c03/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c04/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c05/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c06/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c07/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c08/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c09/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c10/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c11/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c12/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c13/ >> build/kisskill.dat"
+	run_command "python scripts/scrcat.py assets/screens/c14/ >> build/kisskill.dat"
+end
+
+
+### STAGE 3: build other supporting data ###
+
+task :target => 'jules-vsplit.delta', :dependencies => ['scripts/deltacompress.vsplit.py', 'scripts/deltacompress.py'] do
+	run_command "python scripts/deltacompress.vsplit.py > build/jules-vsplit.delta"
+end
+
+task :target => 'candysays_logo.asm', :dependencies => ['images/candysays.xbm', 'scripts/xbm2asm.pl'] do
+	puts `perl scripts/xbm2asm.pl images/candysays.xbm > build/candysays_logo.asm`
+end
+
+task :target => 'plasma_sine.asm', :dependencies => 'scripts/plasma_sine.rb' do
+	puts `ruby scripts/plasma_sine.rb > build/plasma_sine.asm`
+end
+
+task :target => 'roto_sine.asm', :dependencies => 'scripts/roto_sine.rb' do
+	puts `ruby scripts/roto_sine.rb 127 0 > build/roto_sine.asm`
+end
+
+task :target => 'skips.asm', :dependencies => ['scripts/skips.rb', 'scripts/perspective.rb'] do
+	`ruby scripts/skips.rb > build/skips.asm`
+end
+
+task :target => 'sky.bin', :dependencies => ['images/sky.im8', 'scripts/skyconv.py'] do
+	`python scripts/skyconv.py`
+end
+
+task :target => 'random_rects.asm', :dependencies => 'scripts/rand_squares.py' do
+	`python scripts/rand_squares.py > build/random_rects.asm`
+end
+
+task :target => 'leap.bin', :dependencies => ['scripts/leap_convert.py', 'images/leap1.png', 'images/leap2.png', 'images/leap3.png', 'images/leap4.png'] do
+	`python scripts/leap_convert.py`
+end
+
+task :target => 'royal_palette.asm', :dependencies => ['scripts/convert_palette.py', 'palettes/AG_royal'] do
+	run_command "python scripts/convert_palette.py palettes/AG_royal > build/royal_palette.asm"
+end
+task :target => 'melo_pal.asm', :dependencies => ['scripts/convert_palette.py', 'palettes/AG_melo'] do
+	run_command "python scripts/convert_palette.py palettes/AG_melo > build/melo_pal.asm"
+end
+task :target => 'blues_pal.asm', :dependencies => ['scripts/convert_palette.py', 'palettes/AG_blues'] do
+	run_command "python scripts/convert_palette.py palettes/AG_blues > build/blues_pal.asm"
+end
+task :target => 'firecode_palette.asm', :dependencies => ['scripts/convert_palette.py', 'palettes/AG_firecode'] do
+	run_command "python scripts/convert_palette.py palettes/AG_firecode > build/firecode_palette.asm"
+end
+task :target => 'greens_palette.asm', :dependencies => ['scripts/convert_palette.py', 'palettes/AG_greens'] do
+	run_command "python scripts/convert_palette.py palettes/AG_greens > build/greens_palette.asm"
+end
+
+task :target => 'falling-32x96.bin', :dependencies => ['scripts/mksprite.py', 'images/falling-32x96.png'] do
+	run_command "python scripts/mksprite.py images/falling-32x96.png build/falling-32x96.bin"
+end
+task :target => 'falling-24x72.bin', :dependencies => ['scripts/mksprite.py', 'images/falling-24x72.png'] do
+	run_command "python scripts/mksprite.py images/falling-24x72.png build/falling-24x72.bin"
+end
+task :target => 'falling-16x48.bin', :dependencies => ['scripts/mksprite.py', 'images/falling-16x48.png'] do
+	run_command "python scripts/mksprite.py images/falling-16x48.png build/falling-16x48.bin"
+end
+
+### STAGE 4: build the executable - kisskill.tap ###
+
+tap :target => 'kisskill.tap' do |tap|
+	tap.basic :source => 'kiss_kill.bas', :as => 'KissKill', :line => 10
+	tap.asm :source => 'contention_test.asm', :as => 'kisskill1'
+	tap.asm :source => 'loadingstripes_data.asm', :as => 'kisskill2'
+	tap.asm :source => 'rotozoom.asm', :as => 'kisskill3'
+	tap.bin :source => 'jules-vsplit.delta', :address => 0xc000, :as => 'kisskill4'
+	tap.asm :source => 'spiral.asm', :as => 'kisskill5'
+	tap.asm :source => 'kiss_kill.asm', :as => 'kisskill6', :dependencies => 'poster.scr'
+end
+
+
+### STAGE 5: build the disk image - kiss_kill.hdf ###
+
+task :target => 'kiss_kill.hdf', :dependencies => ['kisskill.tap', 'kisskill.dat'] do
+	run_command "hdfmonkey create build/kiss_kill.hdf 64M kisskill"
+	run_command "hdfmonkey put build/kiss_kill.hdf esxdos/sys sys"
+	run_command "hdfmonkey put build/kiss_kill.hdf esxdos/bin bin"
+	run_command "hdfmonkey put build/kiss_kill.hdf build/kisskill.tap kisskill.tap"
+	run_command "hdfmonkey put build/kiss_kill.hdf build/kisskill.dat kisskill.dat"
+end

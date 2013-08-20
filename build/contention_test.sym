@@ -1,0 +1,6 @@
+check_contended	EQU 0802DH
+cont_list	EQU 08057H
+countlp		EQU 0803FH
+interrupt	EQU 08060H
+is_contended	EQU 08057H
+uncont_list	EQU 0804EH

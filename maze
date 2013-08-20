@@ -1,0 +1,333 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+BUILD_DIR = './build/'
+
+$tasks = []
+$rules = []
+$built_targets = []
+
+$tasks_by_target = Hash.new{|hash, target|
+	for rule in $rules
+		task = nil
+		if rule.matches?(target)
+			task = rule.apply(target)
+			hash[target] = task
+			break
+		end
+	end
+	task or raise "No rule to build #{target}"
+}
+
+# build a target and return the task that was invoked
+def build(target)
+	task = $tasks_by_target[target]
+	task.invoke
+	task
+end
+
+def register_task(task)
+	$tasks_by_target[task.target] = task
+	$tasks << task
+end
+
+def run_command(cmd)
+	puts cmd
+	puts `#{cmd}`
+	abort "Command returned non-zero status: #{$?.to_i}" if $?.to_i != 0
+end
+
+class Task
+	def initialize(target)
+		@target = target
+	end
+	attr_reader :target
+	
+	def dependency_targets
+		[]
+	end
+	def dependencies
+		@dependencies ||= dependency_targets.collect{|target| $tasks_by_target[target]}
+	end
+	def invoke
+		dependencies.each{|dep| dep.invoke}
+		execute if needed? and !$built_targets.include?(target)
+		$built_targets << target
+	end
+	def needed?
+		true
+	end
+	def execute
+	end
+end
+
+class FileTask < Task
+	def initialize(target)
+		super(target)
+	end
+	def output
+		File.join(BUILD_DIR, target)
+	end
+	def outputs
+		[output]
+	end
+	def needed?
+		!FileUtils.uptodate?(output, dependencies.collect{|dep| dep.outputs}.flatten)
+	end
+end
+
+class TapTask < FileTask
+	def initialize(target, subtasks)
+		@subtasks = subtasks
+		super(target)
+	end
+	def dependencies
+		@subtasks
+	end
+	def execute
+		@subtasks.each {|task| task.invoke}
+		run_command "cat #{@subtasks.collect{|task| task.outputs}.flatten.join(' ')} > #{output}"
+	end
+end
+
+class TapTaskBuilder
+	def initialize
+		@tasks = []
+	end
+	attr_reader :tasks
+
+	def basic(opts)
+		@tasks << TapBasicTask.new(opts)
+	end
+	def asm(opts)
+		@tasks << TapAsmTask.new(opts)
+	end
+	def bin(opts)
+		@tasks << TapBinTask.new(opts)
+	end
+end
+
+class TapBasicTask < FileTask
+	def initialize(opts = {})
+		if opts[:source]
+			base_name = opts[:source].gsub(/\.bas$/, '')
+		elsif opts[:target]
+			base_name = opts[:target].gsub(/\.bas\.tap$/, '')
+		else
+			raise 'either :source or :target must be supplied'
+		end
+		@source = opts[:source] || base_name + '.bas'
+		@as = opts[:as] || base_name
+		@line = opts[:line] || 1
+		super(opts[:target] || base_name + '.bas.tap')
+	end
+	def dependencies
+		@source_task ||= $tasks_by_target[@source]
+		[@source_task]
+	end
+	def execute
+		run_command "zmakebas -a #{@line} -n #{@as} -o #{output} #{@source_task.output}"
+	end
+end
+
+class TapBinTask < FileTask
+	def initialize(opts = {})
+		if opts[:source].nil?
+			raise ':source must be supplied'
+		end
+		@source = opts[:source]
+		@address = opts[:address] || 0
+		@as = opts[:as] || (@source.split(/\./).first)
+		super(opts[:target] || @source + '.tap')
+	end
+	def dependencies
+		@source_task ||= $tasks_by_target[@source]
+		[@source_task]
+	end
+	def execute
+		run_command "bintap #{@source_task.output} #{output} #{@as} #{@address}"
+	end
+end
+
+class AsmTask < FileTask
+	def initialize(opts = {})
+		if opts[:source]
+			base_name = opts[:source].split('/').last.gsub(/\.asm$/, '')
+		elsif opts[:target]
+			base_name = opts[:target].split('/').last.gsub(/\.obj$/, '')
+		else
+			raise 'either :source or :target must be supplied'
+		end
+		@source = opts[:source] || base_name + '.asm'
+		super(opts[:target] || base_name + '.obj')
+	end
+	def dependency_targets
+		@source_task ||= build(@source)
+		@dependency_targets ||= find_asm_dependency_targets(@source)
+	end
+	def execute
+		run_command "pasmo -I #{BUILD_DIR} #{@source_task.output} #{output}"
+	end
+
+	protected
+	def find_asm_dependency_targets(primary_source_target)
+		dependency_targets = [primary_source_target]
+		targets_to_follow = [primary_source_target]
+		until targets_to_follow.empty? do
+			filename = build(targets_to_follow.shift).output
+			File.open(filename) do |f|
+				f.each_line do |l|
+					case l
+						when /^\s+include\s+[\"\']?(.*?)[\"\']?\s*(\;.*)?$/
+							dependency_targets << $1 unless dependency_targets.include?($1)
+							targets_to_follow << $1 unless targets_to_follow.include?($1)
+						when /^\s+incbin\s+[\"\']?(.*?)[\"\']?\s*(\;.*)?$/
+							dependency_targets << $1 unless dependency_targets.include?($1)
+					end
+				end
+			end
+		end
+		dependency_targets
+	end
+end
+
+class TapAsmTask < AsmTask
+	def initialize(opts = {})
+		if opts[:source]
+			base_name = opts[:source].split('/').last.gsub(/\.asm$/, '')
+		elsif opts[:target]
+			base_name = opts[:target].split('/').last.gsub(/\.obj\.tap$/, '')
+		else
+			raise 'either :source or :target must be supplied'
+		end
+		@as = opts[:as] || base_name
+		super(
+			:source => (opts[:source] || base_name + '.asm'),
+			:target => (opts[:target] || base_name + '.obj.tap')
+		)
+	end
+	def execute
+		symbol_file_name = output.gsub(/\.obj\.tap$/, '.sym')
+		run_command "pasmo --tap --name #{@as} -I #{BUILD_DIR} #{@source_task.output} #{output} #{symbol_file_name}"
+	end
+end
+
+def tap(opts = {})
+	tap_task_builder = TapTaskBuilder.new
+	yield tap_task_builder if block_given?
+	register_task(TapTask.new(opts[:target], tap_task_builder.tasks))
+end
+
+class StaticFileRule
+	def matches?(target)
+		File.exists?(target)
+	end
+	def apply(target)
+		LeaveFileAloneTask.new(target)
+	end
+end
+class LeaveFileAloneTask < Task
+	def initialize(target)
+		super(target)
+	end
+	def output
+		target
+	end
+	def outputs
+		[output]
+	end
+	def needed?
+		false
+	end
+end
+
+class AsmRule
+	def matches?(target)
+		target =~ /\.(obj|sym)$/
+	end
+	def apply(target)
+		real_target = target.gsub(/\.sym$/, '.obj')
+		AsmTask.new(:target => real_target)
+	end
+end
+
+class HrustTask < FileTask
+	def initialize(opts = {})
+		if opts[:source]
+			base_name = opts[:source]
+		elsif opts[:target]
+			base_name = opts[:target].gsub(/\.hr$/, '')
+		else
+			raise 'either :source or :target must be supplied'
+		end
+		@source = opts[:source] || base_name
+		super(opts[:target] || base_name + '.hr')
+	end
+	def dependencies
+		@source_task ||= $tasks_by_target[@source]
+		[@source_task]
+	end
+	def execute
+		run_command "chrust #{@source_task.output} #{output}"
+	end
+end
+
+class HrustRule
+	def matches?(target)
+		target =~ /\.hr$/
+	end
+	def apply(target)
+		HrustTask.new(:target => target)
+	end
+end
+
+class CustomTask < FileTask
+	def initialize(opts, proc)
+		@target = opts[:target]
+		@dependency_targets = opts[:dependencies].to_a
+		@proc = proc
+	end
+	attr_reader :target, :dependency_targets
+
+	def execute
+		@proc.call
+	end
+end
+
+def task(opts = {}, &block)
+	register_task CustomTask.new(opts, block)
+end
+
+class LaunchTask < Task
+	def initialize(file)
+		@file = file
+	end
+	def target
+		"launch_#{@file}"
+	end
+	def dependencies
+		@file_task ||= $tasks_by_target[@file]
+		[@file_task]
+	end
+
+	def execute
+		run_command "/Applications/Fuse.app/Contents/MacOS/Fuse #{@file_task.output}"
+	end
+end
+
+def launch(file)
+	register_task LaunchTask.new(file)
+end
+
+load 'Mazefile'
+
+$rules << AsmRule.new
+$rules << HrustRule.new
+$rules << StaticFileRule.new
+
+if ARGV[0]
+	$tasks_by_target[ARGV[0]].invoke
+else
+	$tasks.first.invoke
+end
